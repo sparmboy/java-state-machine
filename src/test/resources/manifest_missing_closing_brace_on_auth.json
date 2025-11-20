@@ -1,0 +1,14 @@
+{
+  "definition": "definitions/state-machine-definition-missing-closing-brace-on-auth.csv",
+  "transitionActions": {
+    "TA1": "com.myorg.statemachine.actions.TestTransitionAction"
+  },
+  "transitionEvaluators": {
+    "TE1": "com.myorg.statemachine.evaluators.TestTransitionEvaluator",
+    "TE2": "com.myorg.statemachine.evaluators.NameIsAEvaluator",
+    "TE3": "com.myorg.statemachine.evaluators.NameIsBEvaluator"
+  },
+  "defaultPath": [
+  "Start","Middle","End"
+  ]
+}

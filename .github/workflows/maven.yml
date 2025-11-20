@@ -39,4 +39,4 @@ permissions:
   actions: read
   security-events: write
   id-token: write
-  dependencies: write    # Add this to allow dependency submission
+

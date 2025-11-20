@@ -36,7 +36,11 @@ jobs:
 
 permissions:
   contents: read
-  actions: read
+  issues: write
+  pull-requests: write
   security-events: write
   id-token: write
+  actions: read
+  packages: read
+  statuses: write
 

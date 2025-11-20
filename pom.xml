@@ -6,7 +6,7 @@
 
     <groupId>com.glc</groupId>
     <artifactId>java-state-machine</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0-SNAPSHOT</version>
 
 
     <properties>
@@ -91,6 +91,13 @@
 
         </plugins>
     </build>
+
+    <scm>
+        <connection>scm:git:git://github.com/sparmboy/java-state-machine.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/sparmboy/java-state-machine.git</developerConnection>
+        <url>https://github.com/sparmboy/java-state-machine</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <distributionManagement>
         <repository>

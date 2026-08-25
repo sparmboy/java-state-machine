@@ -107,13 +107,14 @@ public class StateMachineLoader {
         List<ToStateActionOverrideDTO<? extends StatefulEntity>> toStateTransitionAction,
         List<TransitionListener<? extends StatefulEntity>> listeners) throws IOException, CsvValidationException, InstantiationException {
         // Read in the manifest JSON and the defined state machine CSV as a CSV reader
-        StateMachineManifest manifest = null;
+        StateMachineManifest manifest;
         try {
             manifest = new ObjectMapper().readValue(manifestFile, StateMachineManifest.class);
         } catch (ValueInstantiationException e) {
-            if (e.getCause().getClass() == ClassNotFoundException.class) {
-                throw new InvalidStateMachineException("Failed to load class defined in manifest: " + e.getMessage());
+            if (e.getCause() != null && e.getCause().getClass() == ClassNotFoundException.class) {
+                throw new InvalidStateMachineException("Failed to load class defined in manifest: " + e.getMessage(), e);
             }
+            throw new InvalidStateMachineException("Failed to load manifest into json from file: " + e.getMessage(), e);
         }
 
         if (manifest == null) {

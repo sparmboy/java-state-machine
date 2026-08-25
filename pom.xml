@@ -12,13 +12,22 @@
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
+        <!-- jackson-databind stays on the 2.13.4.2 security-patch release; jackson-annotations
+             and jackson-core have no equivalent patch release, so they're pinned to the 2.13.4
+             base version that jackson-databind:2.13.4.2 itself resolves to. -->
+        <jackson.version>2.13.4</jackson.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>2.13.0</version>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

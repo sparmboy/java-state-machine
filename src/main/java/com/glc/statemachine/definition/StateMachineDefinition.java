@@ -294,7 +294,8 @@ public class StateMachineDefinition<T extends StatefulEntity> {
      * @return
      */
     public Set<State> getTargetStatesFromState(State state) {
-        return getMatrix().get(state).getTransitionEvaluationActions()
+        return Optional.ofNullable(getMatrix().get(state))
+            .flatMap(StateMachineEventTransitionEvaluations::getTransitionEvaluationActions)
             .map(actions -> actions.values().stream()
                 .flatMap(Collection::stream).collect(Collectors.toList()).stream().map(tea -> tea.getTransition().getToState(null)).collect(Collectors.toSet()))
             .orElse(emptySet());

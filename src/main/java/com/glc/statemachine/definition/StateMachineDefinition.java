@@ -80,13 +80,14 @@ public class StateMachineDefinition<T extends StatefulEntity> {
     }
 
     public StateMachineDefinition(List<StateMachineEventFromAndTo<T>> simpleMatrix, List<String> defaultPath, List<TransitionListener<T>> transitionListeners) {
-        this.matrix = buildMatrix(simpleMatrix);
-        this.transitionListeners = transitionListeners;
+        this.matrix = Collections.unmodifiableMap(buildMatrix(simpleMatrix));
+        this.transitionListeners = transitionListeners == null ? null : Collections.unmodifiableList(new ArrayList<>(transitionListeners));
         this.paths = defaultPath == null ? null : validateAndCreatePath(DEFAULT_PATH, defaultPath);
     }
 
     /**
-     * Validates each state in the specified default path is a valid state within this State machine definitions matrix
+     * Validates each state in the specified default path is a valid state within this State machine definitions matrix.
+     * The returned map (and its state list) is unmodifiable to prevent callers from mutating this definition after construction.
      *
      * @param pathName  The name of the path to create
      * @param statePath The list of states that define the path through the state machine
@@ -96,18 +97,15 @@ public class StateMachineDefinition<T extends StatefulEntity> {
         if (matrix == null) {
             throw new RuntimeException("You must create the matrix before attempting to validate a path");
         }
-        return new HashMap<String, List<State>>() {
-            {
-                put(pathName, statePath.stream()
-                    .map(stateName -> getStates()
-                        .stream()
-                        .filter(state -> stateName.equals(state.getStateName()))
-                        .findFirst()
-                        .orElseThrow(() -> new InvalidStateMachineException("Failed to create path '" + pathName + "' for statemachine. The state name in the supplied path '" + stateName +
-                            "' could not be found in the defined states of the associated state machine definition matrix")))
-                    .collect(Collectors.toList()));
-            }
-        };
+        List<State> resolvedStates = statePath.stream()
+            .map(stateName -> getStates()
+                .stream()
+                .filter(state -> stateName.equals(state.getStateName()))
+                .findFirst()
+                .orElseThrow(() -> new InvalidStateMachineException("Failed to create path '" + pathName + "' for statemachine. The state name in the supplied path '" + stateName +
+                    "' could not be found in the defined states of the associated state machine definition matrix")))
+            .collect(Collectors.toList());
+        return Collections.singletonMap(pathName, Collections.unmodifiableList(resolvedStates));
     }
 
     /**
@@ -129,7 +127,7 @@ public class StateMachineDefinition<T extends StatefulEntity> {
      * @param matrix
      */
     public StateMachineDefinition(Map<State, StateMachineEventTransitionEvaluations<T>> matrix, List<String> defaultPath) {
-        this.matrix = matrix;
+        this.matrix = Collections.unmodifiableMap(new HashMap<>(matrix));
         this.paths = defaultPath == null ? null : validateAndCreatePath(DEFAULT_PATH, defaultPath);
         this.transitionListeners = null;
     }

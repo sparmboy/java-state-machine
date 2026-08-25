@@ -314,6 +314,6 @@ public class StateMachineDefinition<T extends StatefulEntity> {
      * @return true if the transition is valid otherwise false
      */
     public boolean isTargetStateViable(State currentState, State targetState) {
-        return !getTargetStatesFromState(currentState).contains(targetState);
+        return getTargetStatesFromState(currentState).contains(targetState);
     }
 }

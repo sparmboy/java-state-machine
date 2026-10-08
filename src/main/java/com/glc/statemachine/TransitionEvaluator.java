@@ -1,10 +1,13 @@
 package com.glc.statemachine;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 /**
  * Implementations are responsible for returning true if a certain logic path or {@link Transition} should
  * be followed. The intention is for the implementations to be reusable logic blocks for use within the
  * state machine matrix
  */
+@JsonSerialize(as = TransitionEvaluator.class)
 public interface TransitionEvaluator<T extends StatefulEntity> {
 
     /**

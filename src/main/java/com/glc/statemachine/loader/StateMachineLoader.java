@@ -144,7 +144,7 @@ public class StateMachineLoader {
         List<StateMachineEvent> events = eventKeys.stream().map(key -> {
             List<String> roles = extractEventRoles.apply(key);
             if (roles.isEmpty()) {
-                return new DefaultStateMachineEvent(key);
+                return new DefaultStateMachineEvent(extractEventName.apply(key));
             } else {
                 return new AuthorisedStateMachineEvent(extractEventName.apply(key), roles);
             }
@@ -240,7 +240,13 @@ public class StateMachineLoader {
         }
 
 
-        return index == -1 || endIndex < index ? emptyList() : Arrays.asList(eventText.substring(index + 1, endIndex).trim().split(","));
+        if (index == -1 || endIndex < index) {
+            return emptyList();
+        }
+        return Arrays.stream(eventText.substring(index + 1, endIndex).split(","))
+            .map(String::trim)
+            .filter(role -> !role.isEmpty())
+            .collect(Collectors.toList());
     };
 
     /**
@@ -372,12 +378,12 @@ public class StateMachineLoader {
 
             // Check if it is [Evaluator/State]
             if (evaluatorClass != null) {
-                TransitionEvaluator<? extends StatefulEntity> evaluator = instantiateEvaluator(evaluatorClass);
+                TransitionEvaluator<? extends StatefulEntity> evaluator = instantiate(evaluatorClass);
                 return new TransitionContainer(evaluator, new DefaultState(tokens.get(1)));
             }
             // or [State/Action]
             else if (actionClass != null) {
-                TransitionAction<? extends StatefulEntity> action = instantiateAction(actionClass);
+                TransitionAction<? extends StatefulEntity> action = instantiate(actionClass);
                 return new TransitionContainer(new DefaultState(tokens.get(0)), action);
             }
 
@@ -390,13 +396,13 @@ public class StateMachineLoader {
             if (evaluatorClass == null) {
                 throw new InvalidStateMachineException("Unable to find reference to transition evaluator '" + tokens.get(0) + "' in manifest file");
             }
-            TransitionEvaluator<? extends StatefulEntity> evaluator = instantiateEvaluator(evaluatorClass);
+            TransitionEvaluator<? extends StatefulEntity> evaluator = instantiate(evaluatorClass);
 
             Class<? extends TransitionAction<? extends StatefulEntity>> actionClass = manifest.getTransitionActions().get(tokens.get(2));
             if (actionClass == null) {
                 throw new InvalidStateMachineException("Unable to find reference to transition action '" + tokens.get(2) + "' in manifest file");
             }
-            TransitionAction<? extends StatefulEntity> action = instantiateAction(actionClass);
+            TransitionAction<? extends StatefulEntity> action = instantiate(actionClass);
 
             return
                 new TransitionContainer(
@@ -410,51 +416,23 @@ public class StateMachineLoader {
     }
 
     /**
-     * Instantiates an instance of the specified TransitionAction class either with an empty constructor or with
-     * the instance of the evaluatorInstantiationParam specified in the laoder
-     *
-     * @param transitionActionClass
-     * @return
+     * Instantiates the specified TransitionAction or TransitionEvaluator class, either with its no-arg constructor or,
+     * failing that, with a constructor taking the evaluatorInstantiationParam specified in the loader
      */
-
-    private TransitionAction<? extends StatefulEntity> instantiateAction(
-        Class<? extends TransitionAction<? extends StatefulEntity>> transitionActionClass
-    ) {
+    private <I> I instantiate(Class<? extends I> type) {
         try {
-            return transitionActionClass.getDeclaredConstructor().newInstance();
+            return type.getDeclaredConstructor().newInstance();
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            try {
-                return transitionActionClass.getDeclaredConstructor(evaluatorInstantiationParam.getClass()).newInstance(evaluatorInstantiationParam);
-            } catch (Exception ex) {
-                throw new RuntimeException(
-                    "Failed to construct new instance of " + transitionActionClass + " with either no constructor params, or constructor with a param of " + evaluatorInstantiationParam + " (" +
-                        evaluatorInstantiationParam.getClass() + "): " + e, e);
+            if (evaluatorInstantiationParam == null) {
+                throw new InvalidStateMachineException("Failed to construct " + type.getName()
+                    + " with a no-arg constructor, and no instantiation parameter was supplied to the loader", e);
             }
-        }
-    }
-
-    /**
-     * Instantiates an instance of the specified TransitionEvaluator class either with an empty constructor or with
-     * the instance of the evaluatorInstantiationParam specified in the laoder
-     *
-     * @param transitionEvaluatorClass
-     * @return
-     */
-    private TransitionEvaluator<? extends StatefulEntity> instantiateEvaluator(Class<? extends TransitionEvaluator<? extends StatefulEntity>> transitionEvaluatorClass) {
-        try {
-            return transitionEvaluatorClass.getDeclaredConstructor().newInstance();
-        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            if (evaluatorInstantiationParam != null) {
-                try {
-                    return transitionEvaluatorClass.getDeclaredConstructor(evaluatorInstantiationParam.getClass()).newInstance(evaluatorInstantiationParam);
-                } catch (Exception ex) {
-                    throw new RuntimeException(
-                        "Failed to construct new instance of " + transitionEvaluatorClass + " with either no constructor params, or constructor with a param of " + evaluatorInstantiationParam + " (" +
-                            evaluatorInstantiationParam.getClass() + "): " + e,
-                        e);
-                }
-            } else {
-                throw new RuntimeException(e);
+            try {
+                return type.getDeclaredConstructor(evaluatorInstantiationParam.getClass()).newInstance(evaluatorInstantiationParam);
+            } catch (ReflectiveOperationException ex) {
+                ex.addSuppressed(e);
+                throw new InvalidStateMachineException("Failed to construct " + type.getName()
+                    + " with either a no-arg constructor or a constructor taking " + evaluatorInstantiationParam.getClass().getName(), ex);
             }
         }
     }

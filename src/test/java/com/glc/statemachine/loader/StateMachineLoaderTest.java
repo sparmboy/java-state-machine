@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -126,6 +127,61 @@ class StateMachineLoaderTest {
             "Transition 'TE2/Start]' appears to be invalid as it is missing an opening brace or closing brace",
             Assertions.assertThrows(InvalidStateMachineException.class, () -> new StateMachineLoader(new FileInputStream("src/test/resources/manifest_stray_closing_brace_on_transition.json")).load()).getMessage()
         );
+    }
+
+    @Test
+    public void shouldConstructActionWithInstantiationParameter() throws Exception {
+        StateMachineDefinition stateMachineDefinition = new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest_parameterised_action.json"), "from-loader"
+        ).load();
+
+        TestCase testCase = new TestCase();
+        testCase.setState(new DefaultState("Start"));
+        assertTransitionOnEvent(testCase, stateMachineDefinition, "Event1", "End");
+        assertEquals("from-loader", testCase.getName());
+    }
+
+    @Test
+    public void shouldExplainMissingInstantiationParameterForAction() {
+        InvalidStateMachineException exception = Assertions.assertThrows(InvalidStateMachineException.class, () -> new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest_parameterised_action.json")
+        ).load());
+
+        assertEquals("Failed to construct com.myorg.statemachine.actions.ParameterisedTransitionAction with a no-arg constructor, "
+            + "and no instantiation parameter was supplied to the loader", exception.getMessage());
+        Assertions.assertInstanceOf(NoSuchMethodException.class, exception.getCause());
+    }
+
+    @Test
+    public void shouldExplainUnusableInstantiationParameterForAction() {
+        InvalidStateMachineException exception = Assertions.assertThrows(InvalidStateMachineException.class, () -> new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest_parameterised_action.json"), 42
+        ).load());
+
+        assertEquals("Failed to construct com.myorg.statemachine.actions.ParameterisedTransitionAction "
+            + "with either a no-arg constructor or a constructor taking java.lang.Integer", exception.getMessage());
+        Assertions.assertInstanceOf(NoSuchMethodException.class, exception.getCause());
+        assertEquals(1, exception.getCause().getSuppressed().length);
+    }
+
+    @Test
+    public void shouldTrimRolesAndIgnoreEmptyRoleList() throws IOException, CsvValidationException, InstantiationException, IllegalAccessException {
+        StateMachineDefinition<?> stateMachineDefinition = new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest_role_whitespace.json")
+        ).load();
+
+        StateMachineEvent event1 = findEvent(stateMachineDefinition, "Event1");
+        assertEquals(Arrays.asList("admin", "user"), event1.getRoles().orElse(emptyList()));
+        assertEquals(Collections.singleton(event1), stateMachineDefinition.getEventsForState(new DefaultState("Start"), Collections.singletonList("user")).stream()
+            .filter(e -> e.getEventName().equals("Event1")).collect(Collectors.toSet()));
+
+        StateMachineEvent event2 = findEvent(stateMachineDefinition, "Event2");
+        Assertions.assertFalse(event2.getRoles().isPresent());
+    }
+
+    private StateMachineEvent findEvent(StateMachineDefinition<?> stateMachineDefinition, String eventName) {
+        return stateMachineDefinition.getEvents().stream().filter(e -> e.getEventName().equals(eventName)).findFirst()
+            .orElseThrow(() -> new AssertionError("No event named '" + eventName + "' in " + stateMachineDefinition.getEvents()));
     }
 
     @Test

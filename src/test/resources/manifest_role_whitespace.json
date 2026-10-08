@@ -1,0 +1,5 @@
+{
+  "definition": "definitions/state-machine-definition-role-whitespace.csv",
+  "transitionActions": {},
+  "transitionEvaluators": {}
+}

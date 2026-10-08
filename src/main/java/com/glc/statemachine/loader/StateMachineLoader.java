@@ -140,7 +140,7 @@ public class StateMachineLoader {
         List<StateMachineEvent> events = eventKeys.stream().map(key -> {
             List<String> roles = extractEventRoles.apply(key);
             if (roles.isEmpty()) {
-                return new DefaultStateMachineEvent(key);
+                return new DefaultStateMachineEvent(extractEventName.apply(key));
             } else {
                 return new AuthorisedStateMachineEvent(extractEventName.apply(key), roles);
             }
@@ -236,7 +236,13 @@ public class StateMachineLoader {
         }
 
 
-        return index == -1 || endIndex < index ? emptyList() : Arrays.asList(eventText.substring(index + 1, endIndex).trim().split(","));
+        if (index == -1 || endIndex < index) {
+            return emptyList();
+        }
+        return Arrays.stream(eventText.substring(index + 1, endIndex).split(","))
+            .map(String::trim)
+            .filter(role -> !role.isEmpty())
+            .collect(Collectors.toList());
     };
 
     /**

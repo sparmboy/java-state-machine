@@ -126,6 +126,21 @@ class StateMachineLoaderTest {
     }
 
     @Test
+    public void shouldLoadStateWithMultipleDifferentEvents() throws IOException, CsvValidationException, InstantiationException, IllegalAccessException {
+        StateMachineDefinition stateMachineDefinition = new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest_multi_event.json")
+        ).load();
+
+        TestCase viaEvent1 = new TestCase();
+        viaEvent1.setState(new DefaultState("Start"));
+        assertTransitionOnEvent(viaEvent1, stateMachineDefinition, "Event1", "Middle");
+
+        TestCase viaEvent2 = new TestCase();
+        viaEvent2.setState(new DefaultState("Start"));
+        assertTransitionOnEvent(viaEvent2, stateMachineDefinition, "Event2", "End");
+    }
+
+    @Test
     public void shouldFailToLoadMissingStateMachineDefinitionFile() {
         Assertions.assertEquals(
             "Could not find state machine definition file 'definitions/missing-state-machine-definition.csv'",

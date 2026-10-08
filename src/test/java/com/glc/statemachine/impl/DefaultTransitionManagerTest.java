@@ -4,11 +4,14 @@ import static com.glc.statemachine.definition.StateMachineDefinitionUtil.mockSta
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.glc.statemachine.ActionContext;
+import com.glc.statemachine.StateMachineEventFromAndTo;
+import com.glc.statemachine.TransitionListener;
 import com.glc.statemachine.TransitionManager;
 import com.glc.statemachine.definition.StateMachineDefinition;
 import com.glc.statemachine.definition.testcase.TestCase;
 import com.glc.statemachine.definition.testcase.TestStateMachineEvent;
 import com.glc.statemachine.definition.testcase.TestState;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 class DefaultTransitionManagerTest {
@@ -100,4 +103,25 @@ class DefaultTransitionManagerTest {
         assertEquals(TestState.START, testCase.getState());
     }
 
+    @Test
+    public void shouldRollBackStateWhenTransitionListenerFails() {
+        // Given
+        TestCase testCase = new TestCase();
+        TransitionListener<TestCase> failingListener = (transition, context) -> {
+            throw new RuntimeException("simulated listener failure");
+        };
+        StateMachineDefinition<TestCase> definitionWithListener = new StateMachineDefinition<>(
+            Collections.singletonList(new StateMachineEventFromAndTo<>(TestStateMachineEvent.BEGIN, TestState.START, TestState.MIDDLE)),
+            null,
+            Collections.singletonList(failingListener)
+        );
+
+        // When / Then
+        assertThrows(RuntimeException.class, () -> transitionManager.triggerEvent(
+            new ActionContext<>(TestStateMachineEvent.BEGIN, testCase, definitionWithListener)
+        ));
+
+        // Listeners run after the state is set and before persistence, so the state must be rolled back here too
+        assertEquals(TestState.START, testCase.getState());
+    }
 }

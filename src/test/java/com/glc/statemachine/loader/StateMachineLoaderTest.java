@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
@@ -107,6 +108,25 @@ class StateMachineLoaderTest {
         assertTransitionOnEvent(testCase, stateMachineDefinition, "Event2", "End");
 
         assertEquals("C", testCase.getName());
+    }
+
+    @Test
+    public void shouldLoadBracketedTransitionsWithoutEvaluators() throws Exception {
+        StateMachineDefinition stateMachineDefinition = new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest_bracketed_states.json")
+        ).load();
+
+        assertEquals(new HashSet<>(Arrays.asList(new DefaultState("Middle"), new DefaultState("End"))),
+            stateMachineDefinition.getTargetStatesFromState(new DefaultState("Start")));
+        assertEquals(Collections.singleton(new DefaultState("End")), stateMachineDefinition.getTargetStatesFromState(new DefaultState("Middle")));
+    }
+
+    @Test
+    public void shouldRejectClosingBraceWithoutOpeningBrace() {
+        Assertions.assertEquals(
+            "Transition 'TE2/Start]' appears to be invalid as it is missing an opening brace or closing brace",
+            Assertions.assertThrows(InvalidStateMachineException.class, () -> new StateMachineLoader(new FileInputStream("src/test/resources/manifest_stray_closing_brace_on_transition.json")).load()).getMessage()
+        );
     }
 
     @Test
@@ -240,7 +260,7 @@ class StateMachineLoaderTest {
     @Test
     public void shouldFailToLoadStateMachineDefinitionFileForMissingClosingBraceOnTransition() {
         Assertions.assertEquals(
-            "Transition 'TE2/Start][TE3/End]' appears to be invalid as it is missing an opening brace or closing brace",
+            "Transition '[TE2/Start[TE3/End]' appears to be invalid as it is missing an opening brace or closing brace",
             Assertions.assertThrows(InvalidStateMachineException.class, () -> new com.glc.statemachine.loader.StateMachineLoader(new FileInputStream("src/test/resources/manifest_missing_closing_brace_on_transition.json")).load()).getMessage()
         );
     }
@@ -249,8 +269,8 @@ class StateMachineLoaderTest {
     @Test
     public void shouldFailToLoadMissingTransitionAction() {
         Assertions.assertEquals(
-            "com.glc.statemachine.InvalidStateMachineException: Unable to find reference to transition action 'TA69' in manifest file",
-            Assertions.assertThrows(RuntimeException.class, () -> new com.glc.statemachine.loader.StateMachineLoader(new FileInputStream("src/test/resources/manifest_missing_action.json")).load()).getMessage()
+            "Unable to find reference to transition action 'TA69' in manifest file",
+            Assertions.assertThrows(InvalidStateMachineException.class, () -> new com.glc.statemachine.loader.StateMachineLoader(new FileInputStream("src/test/resources/manifest_missing_action.json")).load()).getMessage()
         );
     }
 
@@ -262,8 +282,8 @@ class StateMachineLoaderTest {
     @Test
     public void shouldFailToLoadMissingTransitionEvaluator() {
         Assertions.assertEquals(
-            "com.glc.statemachine.InvalidStateMachineException: Unable to find reference to transition evaluator 'TE69' in manifest file",
-            Assertions.assertThrows(RuntimeException.class, () -> new com.glc.statemachine.loader.StateMachineLoader(new FileInputStream("src/test/resources/manifest_missing_evaluator.json")).load()).getMessage()
+            "Unable to find reference to transition evaluator 'TE69' in manifest file",
+            Assertions.assertThrows(InvalidStateMachineException.class, () -> new com.glc.statemachine.loader.StateMachineLoader(new FileInputStream("src/test/resources/manifest_missing_evaluator.json")).load()).getMessage()
         );
     }
 

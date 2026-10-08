@@ -1,5 +1,5 @@
 {
-  "definition": "definitions/state-machine-definition-missing-closing-brace-on-transition.csv",
+  "definition": "definitions/state-machine-definition-bracketed-states.csv",
   "transitionActions": {
     "TA1": "com.myorg.statemachine.actions.TestTransitionAction"
   },
@@ -7,8 +7,5 @@
     "TE1": "com.myorg.statemachine.evaluators.TestTransitionEvaluator",
     "TE2": "com.myorg.statemachine.evaluators.NameIsAEvaluator",
     "TE3": "com.myorg.statemachine.evaluators.NameIsBEvaluator"
-  },
-  "defaultPath": [
-  "Start","Middle","End"
-  ]
+  }
 }

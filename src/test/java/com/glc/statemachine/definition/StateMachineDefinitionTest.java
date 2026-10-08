@@ -4,8 +4,11 @@ import static com.glc.statemachine.definition.StateMachineDefinitionUtil.mockSta
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glc.statemachine.ActionContext;
+import com.glc.statemachine.TransitionEvaluator;
+import com.glc.statemachine.impl.DefaultTransitionAction;
 import com.glc.statemachine.StateMachineEvent;
 import com.glc.statemachine.StateMachineEventFromAndTo;
 import com.glc.statemachine.State;
@@ -13,6 +16,7 @@ import com.glc.statemachine.definition.testcase.TestCase;
 import com.glc.statemachine.definition.testcase.TestStateMachineEvent;
 import com.glc.statemachine.definition.testcase.TestState;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -25,8 +29,37 @@ public class StateMachineDefinitionTest {
 
     @Test
     public void shouldGenerateSchema() throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        System.out.println(objectMapper.writeValueAsString(stateMachineDefinition));
+        // Given
+        StateMachineDefinition<TestCase> definition = new StateMachineDefinitionBuilder<TestCase>()
+            .withTransition(TestStateMachineEvent.BEGIN, TestState.START, TestState.MIDDLE,
+                new TransitionEvaluator<TestCase>() {
+                    @Override
+                    public String getDescription() {
+                        return "Has a name";
+                    }
+
+                    @Override
+                    public boolean evaluate(ActionContext<TestCase> context) {
+                        return true;
+                    }
+                },
+                Collections.singletonList(new DefaultTransitionAction<>("setName")))
+            .withTransition(TestStateMachineEvent.STOP, TestState.MIDDLE, TestState.END)
+            .withDefaultPath(Arrays.asList("Start", "Middle", "End"))
+            .build();
+
+        // When
+        String json = new ObjectMapper().writeValueAsString(definition);
+        JsonNode tree = new ObjectMapper().readTree(json);
+
+        // Then
+        assertEquals("Has a name", tree.at("/matrix/START/BEGIN/0/evaluator/description").asText());
+        assertEquals("MIDDLE", tree.at("/matrix/START/BEGIN/0/transition/toState").asText());
+        assertEquals("setName", tree.at("/matrix/START/BEGIN/0/transition/transitionActions/0/name").asText());
+        assertFalse(tree.at("/matrix/MIDDLE/STOP/0").has("evaluator"));
+        assertEquals("[\"START\",\"MIDDLE\",\"END\"]", tree.at("/paths/default").toString());
+        assertFalse(tree.has("transitionListeners"));
+        assertFalse(json.contains("\"present\""), "Optional values must not be serialized as beans: " + json);
     }
 
     @Test

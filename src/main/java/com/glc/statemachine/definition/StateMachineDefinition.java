@@ -29,13 +29,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
 
 /**
  * Defines an instance of a statemachine definition that holds
@@ -157,7 +155,7 @@ public class StateMachineDefinition<T extends StatefulEntity> {
             new DefaultTransition<>(
                 stateMachineEventFromAndTo.getFromState(),
                 stateMachineEventFromAndTo.getToState(),
-                CollectionUtils.isEmpty(stateMachineEventFromAndTo.getActions()) ?
+                stateMachineEventFromAndTo.getActions().isEmpty() ?
                     Collections.singletonList(
                         new DefaultTransitionAction<>(
                             String.format("%s->%s->%s action", stateMachineEventFromAndTo.getFromState().getStateName(), stateMachineEventFromAndTo.getStateMachineEvent().getEventName(),
@@ -204,7 +202,7 @@ public class StateMachineDefinition<T extends StatefulEntity> {
         return getEventsForState(state, emptyList());
     }
 
-    public Set<StateMachineEvent> getEventsForState(State state, @NotNull List<String> roles) {
+    public Set<StateMachineEvent> getEventsForState(State state, List<String> roles) {
         return Optional.ofNullable(matrix.get(state))
             .map(e -> e.getTransitionEvaluationActions().orElse(Collections.emptyMap()).keySet())
             .orElseGet(Collections::emptySet)

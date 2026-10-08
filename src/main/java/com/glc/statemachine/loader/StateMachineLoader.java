@@ -37,11 +37,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -133,7 +131,7 @@ public class StateMachineLoader {
         // Event names are extracted from position 1 (zero index) of the first row of the CSV
         List<String> eventKeys = records.get(0).subList(1, records.get(0).size());
         List<String> duplicateEvents = getDuplicates(eventKeys);
-        if (!CollectionUtils.isEmpty(duplicateEvents)) {
+        if (!duplicateEvents.isEmpty()) {
             throw new InvalidStateMachineException("Duplicate event(s) detected: " + duplicateEvents);
         }
 
@@ -141,7 +139,7 @@ public class StateMachineLoader {
         // either standard event objects or Authorised event objects
         List<StateMachineEvent> events = eventKeys.stream().map(key -> {
             List<String> roles = extractEventRoles.apply(key);
-            if (CollectionUtils.isEmpty(roles)) {
+            if (roles.isEmpty()) {
                 return new DefaultStateMachineEvent(key);
             } else {
                 return new AuthorisedStateMachineEvent(extractEventName.apply(key), roles);
@@ -152,7 +150,7 @@ public class StateMachineLoader {
         records = records.subList(1, records.size());
         List<String> allStates = records.stream().map(list -> list.get(0)).collect(Collectors.toList());
         List<String> duplicateStates = getDuplicates(allStates);
-        if (!CollectionUtils.isEmpty(duplicateStates)) {
+        if (!duplicateStates.isEmpty()) {
             throw new InvalidStateMachineException("Duplicate state(s) detected: " + duplicateStates);
         }
 
@@ -301,7 +299,7 @@ public class StateMachineLoader {
      */
     private Optional<? extends TransitionAction<? extends StatefulEntity>> getTransitionActionOverride(State nextState,
                                                                                                        List<ToStateActionOverrideDTO<? extends StatefulEntity>> toStateTransitionAction) {
-        if (!CollectionUtils.isEmpty(toStateTransitionAction)) {
+        if (toStateTransitionAction != null && !toStateTransitionAction.isEmpty()) {
             return toStateTransitionAction.stream()
                 .filter(ao -> ao.getToState().getStateName().equals(nextState.getStateName()))
                 .map(ToStateActionOverrideDTO::getTransitionAction)
@@ -444,7 +442,7 @@ public class StateMachineLoader {
      * @param transitionEvaluatorClass
      * @return
      */
-    private TransitionEvaluator<? extends StatefulEntity> instantiateEvaluator(@NotNull Class<? extends TransitionEvaluator<? extends StatefulEntity>> transitionEvaluatorClass) {
+    private TransitionEvaluator<? extends StatefulEntity> instantiateEvaluator(Class<? extends TransitionEvaluator<? extends StatefulEntity>> transitionEvaluatorClass) {
         try {
             return transitionEvaluatorClass.getDeclaredConstructor().newInstance();
         } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {

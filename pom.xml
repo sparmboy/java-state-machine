@@ -112,8 +112,8 @@
     </build>
 
     <scm>
-        <connection>scm:git:git://github.com/sparmboy/java-state-machine.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/sparmboy/java-state-machine.git</developerConnection>
+        <connection>scm:git:https://github.com/sparmboy/java-state-machine.git</connection>
+        <developerConnection>scm:git:https://github.com/sparmboy/java-state-machine.git</developerConnection>
         <url>https://github.com/sparmboy/java-state-machine</url>
         <tag>HEAD</tag>
     </scm>

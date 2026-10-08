@@ -1,6 +1,7 @@
 package com.glc.statemachine;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.glc.statemachine.impl.DefaultStateMachineEvent;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,7 @@ public interface StateMachineEvent {
      * user must have to be able to trigger this event
      * @return
      */
+    @JsonIgnore
     default Optional<List<String>> getRoles() {
         return Optional.empty();
     }

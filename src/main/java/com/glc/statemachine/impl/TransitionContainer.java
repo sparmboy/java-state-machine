@@ -3,7 +3,6 @@ package com.glc.statemachine.impl;
 import com.glc.statemachine.State;
 import com.glc.statemachine.TransitionAction;
 import com.glc.statemachine.TransitionEvaluator;
-import javax.validation.constraints.NotNull;
 import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -31,15 +30,15 @@ public class TransitionContainer {
         return Optional.ofNullable(action);
     }
 
-    public TransitionContainer(@NotNull State nextState) {
+    public TransitionContainer(State nextState) {
         this.evaluator = null;
         this.nextState = nextState;
         this.action = null;
     }
 
     public TransitionContainer(
-        @NotNull TransitionEvaluator evaluator,
-        @NotNull State nextState
+        TransitionEvaluator evaluator,
+        State nextState
     ) {
         this.evaluator = evaluator;
         this.nextState = nextState;
@@ -47,9 +46,9 @@ public class TransitionContainer {
     }
 
     public TransitionContainer(
-        @NotNull TransitionEvaluator evaluator,
-        @NotNull State nextState,
-        @NotNull TransitionAction action
+        TransitionEvaluator evaluator,
+        State nextState,
+        TransitionAction action
     ) {
         this.evaluator = evaluator;
         this.nextState = nextState;
@@ -58,8 +57,8 @@ public class TransitionContainer {
 
 
     public TransitionContainer(
-        @NotNull State nextState,
-        @NotNull TransitionAction action) {
+        State nextState,
+        TransitionAction action) {
         this.evaluator = null;
         this.nextState = nextState;
         this.action = action;

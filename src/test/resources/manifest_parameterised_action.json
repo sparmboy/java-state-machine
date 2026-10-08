@@ -1,0 +1,7 @@
+{
+  "definition": "definitions/state-machine-definition-parameterised-action.csv",
+  "transitionActions": {
+    "TA1": "com.myorg.statemachine.actions.ParameterisedTransitionAction"
+  },
+  "transitionEvaluators": {}
+}

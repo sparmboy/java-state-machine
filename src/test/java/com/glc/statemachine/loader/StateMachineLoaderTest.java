@@ -3,7 +3,10 @@ package com.glc.statemachine.loader;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glc.statemachine.ActionContext;
 import com.glc.statemachine.InvalidStateMachineException;
 import com.glc.statemachine.StateMachineEvent;
@@ -106,6 +109,39 @@ class StateMachineLoaderTest {
     }
 
     @Test
+    public void shouldSerializeLoadedStateMachineDefinition() throws Exception {
+        StateMachineDefinition stateMachineDefinition = new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest.json")
+        ).load();
+
+        String json = new ObjectMapper().writeValueAsString(stateMachineDefinition);
+        JsonNode tree = new ObjectMapper().readTree(json);
+
+        // Loaded states and events are keyed by their names rather than their toString()
+        assertEquals("Middle", tree.at("/matrix/Start/Event1/0/transition/toState").asText());
+        assertEquals(2, tree.at("/matrix/Middle/Event2").size());
+        assertEquals("[\"Start\",\"Middle\",\"End\"]", tree.at("/paths/default").toString());
+        assertTrue(tree.get("events").toString().contains("{\"eventName\":\"Event1\",\"roles\":[\"assistant\"]}"), json);
+        assertTrue(tree.get("events").toString().contains("\"Event2\""), json);
+        Assertions.assertFalse(json.contains("\"present\""), json);
+    }
+
+    @Test
+    public void shouldLoadStateWithMultipleDifferentEvents() throws IOException, CsvValidationException, InstantiationException, IllegalAccessException {
+        StateMachineDefinition stateMachineDefinition = new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest_multi_event.json")
+        ).load();
+
+        TestCase viaEvent1 = new TestCase();
+        viaEvent1.setState(new DefaultState("Start"));
+        assertTransitionOnEvent(viaEvent1, stateMachineDefinition, "Event1", "Middle");
+
+        TestCase viaEvent2 = new TestCase();
+        viaEvent2.setState(new DefaultState("Start"));
+        assertTransitionOnEvent(viaEvent2, stateMachineDefinition, "Event2", "End");
+    }
+
+    @Test
     public void shouldFailToLoadMissingStateMachineDefinitionFile() {
         Assertions.assertEquals(
             "Could not find state machine definition file 'definitions/missing-state-machine-definition.csv'",
@@ -164,11 +200,7 @@ class StateMachineLoaderTest {
 
     @Test
     public void shouldFailToLoadTransitionActionForMissingClass() {
-        Assertions.assertEquals(
-            "Failed to load class defined in manifest: Cannot construct instance of `java.lang.Class`, problem: com.myorg.statemachine.actions.TestTransitionActionMissing\n" +
-                " at [Source: (FileInputStream); line: 4, column: 12] (through reference chain: com.glc.statemachine.loader.StateMachineManifest[\"transitionActions\"]->java.util.LinkedHashMap[\"TA1\"])",
-            Assertions.assertThrows(InvalidStateMachineException.class, () -> new com.glc.statemachine.loader.StateMachineLoader(new FileInputStream("src/test/resources/manifest_missing_action_class.json")).load()).getMessage()
-        );
+        assertMissingClassFailure("src/test/resources/manifest_missing_action_class.json", "com.myorg.statemachine.actions.TestTransitionActionMissing");
     }
 
     @Test
@@ -181,11 +213,15 @@ class StateMachineLoaderTest {
 
     @Test
     public void shouldFailToLoadTransitionEvaluatorForMissingClass() {
-        Assertions.assertEquals(
-            "Failed to load class defined in manifest: Cannot construct instance of `java.lang.Class`, problem: com.myorg.statemachine.actions.TestTransitionActionMissing\n" +
-                " at [Source: (FileInputStream); line: 4, column: 12] (through reference chain: com.glc.statemachine.loader.StateMachineManifest[\"transitionActions\"]->java.util.LinkedHashMap[\"TA1\"])",
-            Assertions.assertThrows(InvalidStateMachineException.class, () -> new com.glc.statemachine.loader.StateMachineLoader(new FileInputStream("src/test/resources/manifest_missing_evaluator_class.json")).load()).getMessage()
-        );
+        assertMissingClassFailure("src/test/resources/manifest_missing_evaluator_class.json", "com.myorg.statemachine.evaluators.TestTransitionEvaluatorMissing");
+    }
+
+    // Jackson's own wording and source-location formatting vary between versions, so only the parts this library controls are asserted.
+    private void assertMissingClassFailure(String manifestPath, String missingClassName) {
+        InvalidStateMachineException exception = Assertions.assertThrows(InvalidStateMachineException.class, () -> new StateMachineLoader(new FileInputStream(manifestPath)).load());
+        Assertions.assertTrue(exception.getMessage().startsWith("Failed to load class defined in manifest: "), exception.getMessage());
+        Assertions.assertTrue(exception.getMessage().contains(missingClassName), exception.getMessage());
+        assertNotNull(exception.getCause());
     }
 
     @Test

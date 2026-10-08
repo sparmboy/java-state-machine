@@ -4,7 +4,10 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.glc.statemachine.ActionContext;
 import com.glc.statemachine.InvalidStateMachineException;
 import com.glc.statemachine.State;
@@ -15,6 +18,7 @@ import com.glc.statemachine.Transition;
 import com.glc.statemachine.TransitionListener;
 import com.glc.statemachine.impl.DefaultTransition;
 import com.glc.statemachine.impl.DefaultTransitionAction;
+import com.glc.statemachine.serializers.NameKeySerializer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -23,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
@@ -51,15 +54,19 @@ public class StateMachineDefinition<T extends StatefulEntity> {
      * This is the state machine matrix defining the transitions
      * that can come out of each state
      */
+    @JsonSerialize(keyUsing = NameKeySerializer.class)
     Map<State, StateMachineEventTransitionEvaluations<T>> matrix;
 
     /**
      * Defines a set of linear paths through a state machine to aid visualisation
      */
+    @JsonProperty
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     Map<String, List<State>> paths;
 
     List<TransitionListener<T>> transitionListeners;
 
+    @JsonIgnore
     public Optional<List<TransitionListener<T>>> getTransitionListeners() {
         return Optional.ofNullable(transitionListeners);
     }
@@ -133,34 +140,15 @@ public class StateMachineDefinition<T extends StatefulEntity> {
     }
 
     private Map<State, StateMachineEventTransitionEvaluations<T>> buildMatrix(List<StateMachineEventFromAndTo<T>> simpleMatrix) {
+        Map<State, Map<StateMachineEvent, List<TransitionEvaluationActions<T>>>> transitionsByState = new HashMap<>();
+        simpleMatrix.forEach(item -> transitionsByState
+            .computeIfAbsent(item.getFromState(), state -> new HashMap<>())
+            .computeIfAbsent(item.getStateMachineEvent(), event -> new ArrayList<>())
+            .add(buildTransitionEvaluationActionValue(item)));
+
         Map<State, StateMachineEventTransitionEvaluations<T>> map = new HashMap<>();
-        simpleMatrix.forEach(item -> {
-            if (map.containsKey(item.getFromState())) {
-                StateMachineEventTransitionEvaluations<T> evals = map.get(item.getFromState());
-                if (evals.getTransitionEvaluationActions().isPresent()) {
-                    List<TransitionEvaluationActions<T>> newList = new ArrayList<>(evals.getTransitionEvaluationActions().get().get(item.getStateMachineEvent()));
-                    newList.add(buildTransitionEvaluationActionValue(item));
-                    evals.getTransitionEvaluationActions().get().put(item.getStateMachineEvent(), newList);
-                } else {
-                    map.put(item.getFromState(), buildEventTransitionEvaluations.apply(item));
-                }
-            } else {
-                map.put(item.getFromState(), buildEventTransitionEvaluations.apply(item));
-            }
-        });
+        transitionsByState.forEach((state, transitionsByEvent) -> map.put(state, new StateMachineEventTransitionEvaluations<>(transitionsByEvent)));
         return map;
-    }
-
-    private Function<StateMachineEventFromAndTo<T>, StateMachineEventTransitionEvaluations<T>> buildEventTransitionEvaluations = stateMachineEventFromAndTo ->
-        new StateMachineEventTransitionEvaluations<>(
-            new HashMap<StateMachineEvent, List<TransitionEvaluationActions<T>>>() {{
-                put(stateMachineEventFromAndTo.getStateMachineEvent(), buildTransitionEvaluationActions(stateMachineEventFromAndTo));
-            }}
-        );
-
-    private List<TransitionEvaluationActions<T>> buildTransitionEvaluationActions(
-        StateMachineEventFromAndTo<T> stateMachineEventFromAndTo) {
-        return Collections.singletonList(buildTransitionEvaluationActionValue(stateMachineEventFromAndTo));
     }
 
     private TransitionEvaluationActions<T> buildTransitionEvaluationActionValue(StateMachineEventFromAndTo<T> stateMachineEventFromAndTo) {
@@ -232,6 +220,7 @@ public class StateMachineDefinition<T extends StatefulEntity> {
             ;
     }
 
+    @JsonIgnore
     public Optional<Map<String, List<State>>> getPaths() {
         return Optional.ofNullable(paths);
     }

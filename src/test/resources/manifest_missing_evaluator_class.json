@@ -1,7 +1,7 @@
 {
   "definition": "definitions/state-machine-definition.csv",
   "transitionActions": {
-    "TA1": "com.myorg.statemachine.actions.TestTransitionActionMissing"
+    "TA1": "com.myorg.statemachine.actions.TestTransitionAction"
   },
   "transitionEvaluators": {
     "TE1": "com.myorg.statemachine.evaluators.TestTransitionEvaluatorMissing",

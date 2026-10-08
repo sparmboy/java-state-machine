@@ -1,8 +1,11 @@
 package com.glc.statemachine;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 /**
  * Interface to define how the actions are performed for a given transition between states.
  */
+@JsonSerialize(as = TransitionAction.class)
 public interface TransitionAction<T extends StatefulEntity> {
 
     /**

@@ -75,4 +75,29 @@ class DefaultTransitionManagerTest {
         assertEquals(TestState.START,testCase.getState());
     }
 
+    @Test
+    public void shouldRollBackStateWhenPersistenceFails() {
+        // Given
+        TestCase testCase = new TestCase();
+        TransitionManager<TestCase> failingTransitionManager = new DefaultTransitionManager<TestCase>() {
+            @Override
+            protected void persistEntity(ActionContext<TestCase> actionContext) {
+                throw new RuntimeException("simulated persistence failure");
+            }
+        };
+
+        // When / Then
+        assertThrows(RuntimeException.class, () -> failingTransitionManager.triggerEvent(
+            new ActionContext<>(
+                TestStateMachineEvent.BEGIN,
+                testCase,
+                stateMachineDefinition
+            )
+        ));
+
+        // The entity's in-memory state must be rolled back to its pre-transition value
+        // since the transition was never actually persisted.
+        assertEquals(TestState.START, testCase.getState());
+    }
+
 }

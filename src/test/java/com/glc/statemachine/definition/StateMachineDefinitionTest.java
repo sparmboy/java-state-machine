@@ -94,4 +94,16 @@ public class StateMachineDefinitionTest {
         // never a key in the matrix map. This should not throw a NullPointerException.
         assertTrue(stateMachineDefinition.getTargetStatesFromState(TestState.END).isEmpty());
     }
+
+    @Test
+    public void shouldReturnTrueWhenTargetStateIsReachableFromCurrentState() {
+        // When / then
+        assertTrue(stateMachineDefinition.isTargetStateViable(TestState.START, TestState.MIDDLE));
+    }
+
+    @Test
+    public void shouldReturnFalseWhenTargetStateIsNotReachableFromCurrentState() {
+        // When / then
+        assertFalse(stateMachineDefinition.isTargetStateViable(TestState.START, TestState.END));
+    }
 }

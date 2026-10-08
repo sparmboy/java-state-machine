@@ -4,7 +4,10 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.glc.statemachine.ActionContext;
 import com.glc.statemachine.InvalidStateMachineException;
 import com.glc.statemachine.State;
@@ -15,6 +18,7 @@ import com.glc.statemachine.Transition;
 import com.glc.statemachine.TransitionListener;
 import com.glc.statemachine.impl.DefaultTransition;
 import com.glc.statemachine.impl.DefaultTransitionAction;
+import com.glc.statemachine.serializers.NameKeySerializer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,13 +29,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections.CollectionUtils;
 
 /**
  * Defines an instance of a statemachine definition that holds
@@ -50,15 +52,19 @@ public class StateMachineDefinition<T extends StatefulEntity> {
      * This is the state machine matrix defining the transitions
      * that can come out of each state
      */
+    @JsonSerialize(keyUsing = NameKeySerializer.class)
     Map<State, StateMachineEventTransitionEvaluations<T>> matrix;
 
     /**
      * Defines a set of linear paths through a state machine to aid visualisation
      */
+    @JsonProperty
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     Map<String, List<State>> paths;
 
     List<TransitionListener<T>> transitionListeners;
 
+    @JsonIgnore
     public Optional<List<TransitionListener<T>>> getTransitionListeners() {
         return Optional.ofNullable(transitionListeners);
     }
@@ -149,7 +155,7 @@ public class StateMachineDefinition<T extends StatefulEntity> {
             new DefaultTransition<>(
                 stateMachineEventFromAndTo.getFromState(),
                 stateMachineEventFromAndTo.getToState(),
-                CollectionUtils.isEmpty(stateMachineEventFromAndTo.getActions()) ?
+                stateMachineEventFromAndTo.getActions().isEmpty() ?
                     Collections.singletonList(
                         new DefaultTransitionAction<>(
                             String.format("%s->%s->%s action", stateMachineEventFromAndTo.getFromState().getStateName(), stateMachineEventFromAndTo.getStateMachineEvent().getEventName(),
@@ -196,7 +202,7 @@ public class StateMachineDefinition<T extends StatefulEntity> {
         return getEventsForState(state, emptyList());
     }
 
-    public Set<StateMachineEvent> getEventsForState(State state, @NotNull List<String> roles) {
+    public Set<StateMachineEvent> getEventsForState(State state, List<String> roles) {
         return Optional.ofNullable(matrix.get(state))
             .map(e -> e.getTransitionEvaluationActions().orElse(Collections.emptyMap()).keySet())
             .orElseGet(Collections::emptySet)
@@ -212,6 +218,7 @@ public class StateMachineDefinition<T extends StatefulEntity> {
             ;
     }
 
+    @JsonIgnore
     public Optional<Map<String, List<State>>> getPaths() {
         return Optional.ofNullable(paths);
     }

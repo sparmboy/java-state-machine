@@ -1,5 +1,6 @@
 package com.glc.statemachine.impl;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.glc.statemachine.State;
 import lombok.AccessLevel;
 import lombok.EqualsAndHashCode;
@@ -14,6 +15,7 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode(of = "stateName")
 @ToString(includeFieldNames = false)
 public class DefaultState implements State {
+    @JsonValue
     String stateName;
 
     public DefaultState(State state) {

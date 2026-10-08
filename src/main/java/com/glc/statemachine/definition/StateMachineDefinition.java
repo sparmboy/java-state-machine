@@ -4,7 +4,10 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.glc.statemachine.ActionContext;
 import com.glc.statemachine.InvalidStateMachineException;
 import com.glc.statemachine.State;
@@ -15,6 +18,7 @@ import com.glc.statemachine.Transition;
 import com.glc.statemachine.TransitionListener;
 import com.glc.statemachine.impl.DefaultTransition;
 import com.glc.statemachine.impl.DefaultTransitionAction;
+import com.glc.statemachine.serializers.NameKeySerializer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,15 +55,19 @@ public class StateMachineDefinition<T extends StatefulEntity> {
      * This is the state machine matrix defining the transitions
      * that can come out of each state
      */
+    @JsonSerialize(keyUsing = NameKeySerializer.class)
     Map<State, StateMachineEventTransitionEvaluations<T>> matrix;
 
     /**
      * Defines a set of linear paths through a state machine to aid visualisation
      */
+    @JsonProperty
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     Map<String, List<State>> paths;
 
     List<TransitionListener<T>> transitionListeners;
 
+    @JsonIgnore
     public Optional<List<TransitionListener<T>>> getTransitionListeners() {
         return Optional.ofNullable(transitionListeners);
     }
@@ -232,6 +240,7 @@ public class StateMachineDefinition<T extends StatefulEntity> {
             ;
     }
 
+    @JsonIgnore
     public Optional<Map<String, List<State>>> getPaths() {
         return Optional.ofNullable(paths);
     }

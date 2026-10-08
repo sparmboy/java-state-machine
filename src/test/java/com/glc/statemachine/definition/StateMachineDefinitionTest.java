@@ -89,6 +89,13 @@ public class StateMachineDefinitionTest {
     }
 
     @Test
+    public void shouldReturnEmptySetOfTargetStatesForTerminalState() {
+        // TestState.END has no outgoing transitions in the mock matrix, so it is
+        // never a key in the matrix map. This should not throw a NullPointerException.
+        assertTrue(stateMachineDefinition.getTargetStatesFromState(TestState.END).isEmpty());
+    }
+
+    @Test
     public void shouldReturnTrueWhenTargetStateIsReachableFromCurrentState() {
         // When / then
         assertTrue(stateMachineDefinition.isTargetStateViable(TestState.START, TestState.MIDDLE));

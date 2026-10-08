@@ -32,7 +32,7 @@ jobs:
 
       # Released artifacts are built with the oldest JDK the library supports.
       - name: Set up JDK 8
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '8'

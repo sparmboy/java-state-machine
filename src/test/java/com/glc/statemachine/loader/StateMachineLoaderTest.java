@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -141,6 +142,26 @@ class StateMachineLoaderTest {
             + "with either a no-arg constructor or a constructor taking java.lang.Integer", exception.getMessage());
         Assertions.assertInstanceOf(NoSuchMethodException.class, exception.getCause());
         assertEquals(1, exception.getCause().getSuppressed().length);
+    }
+
+    @Test
+    public void shouldTrimRolesAndIgnoreEmptyRoleList() throws IOException, CsvValidationException, InstantiationException, IllegalAccessException {
+        StateMachineDefinition<?> stateMachineDefinition = new StateMachineLoader(
+            new FileInputStream("src/test/resources/manifest_role_whitespace.json")
+        ).load();
+
+        StateMachineEvent event1 = findEvent(stateMachineDefinition, "Event1");
+        assertEquals(Arrays.asList("admin", "user"), event1.getRoles().orElse(emptyList()));
+        assertEquals(Collections.singleton(event1), stateMachineDefinition.getEventsForState(new DefaultState("Start"), Collections.singletonList("user")).stream()
+            .filter(e -> e.getEventName().equals("Event1")).collect(Collectors.toSet()));
+
+        StateMachineEvent event2 = findEvent(stateMachineDefinition, "Event2");
+        Assertions.assertFalse(event2.getRoles().isPresent());
+    }
+
+    private StateMachineEvent findEvent(StateMachineDefinition<?> stateMachineDefinition, String eventName) {
+        return stateMachineDefinition.getEvents().stream().filter(e -> e.getEventName().equals(eventName)).findFirst()
+            .orElseThrow(() -> new AssertionError("No event named '" + eventName + "' in " + stateMachineDefinition.getEvents()));
     }
 
     @Test

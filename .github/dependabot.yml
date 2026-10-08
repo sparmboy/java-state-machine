@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      jackson:
+        patterns:
+          - "com.fasterxml.jackson*"
+    ignore:
+      # JUnit 6 requires Java 17, but the CI matrix still runs the tests on Java 8.
+      - dependency-name: "org.junit*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -3,6 +3,7 @@ package com.glc.statemachine.definition;
 import static com.glc.statemachine.definition.StateMachineDefinitionUtil.NAME_PARAM;
 import static com.glc.statemachine.definition.StateMachineDefinitionUtil.mockComplexStateMachine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.glc.statemachine.ActionContext;
 import com.glc.statemachine.TransitionManager;
@@ -62,5 +63,12 @@ class StateMachineDefinitionBuilderTest {
         // Then
         assertEquals(TestState.MIDDLE,testCase.getState());
         assertEquals("A",testCase.getName());
+    }
+
+    @Test
+    public void shouldNotExposeMutableMatrixFromBuiltDefinition() {
+        // A built StateMachineDefinition should be effectively immutable: mutating the
+        // map returned by getMatrix() must not silently corrupt the live definition.
+        assertThrows(UnsupportedOperationException.class, () -> stateMachineDefinition.getMatrix().clear());
     }
 }

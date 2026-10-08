@@ -87,4 +87,16 @@ public class StateMachineDefinitionTest {
         // When / then
         assertIterableEquals(expectedList, stateMachineDefinition.getStates().stream().sorted(sorter).collect(Collectors.toList()));
     }
+
+    @Test
+    public void shouldReturnTrueWhenTargetStateIsReachableFromCurrentState() {
+        // When / then
+        assertTrue(stateMachineDefinition.isTargetStateViable(TestState.START, TestState.MIDDLE));
+    }
+
+    @Test
+    public void shouldReturnFalseWhenTargetStateIsNotReachableFromCurrentState() {
+        // When / then
+        assertFalse(stateMachineDefinition.isTargetStateViable(TestState.START, TestState.END));
+    }
 }

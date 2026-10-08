@@ -4,4 +4,8 @@ public class InvalidStateMachineException extends RuntimeException {
     public InvalidStateMachineException(String s) {
         super(s);
     }
+
+    public InvalidStateMachineException(String s, Throwable cause) {
+        super(s, cause);
+    }
 }

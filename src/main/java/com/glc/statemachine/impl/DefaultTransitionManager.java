@@ -17,9 +17,9 @@ import lombok.extern.slf4j.Slf4j;
  * <p>
  * Note that if a transition is not found, then no actions are performed and only a trace message will be logged.
  * <p>
- * If {@link #persistEntity(ActionContext)} throws, the entity's state is rolled back to what it was before this
- * transition ran and the exception is rethrown. Note that only the state field is rolled back; any other side
- * effects performed by transition actions or transition listeners are not undone.
+ * If a transition action, a transition listener or {@link #persistEntity(ActionContext)} throws, the entity's state is
+ * rolled back to what it was before this transition ran and the exception is rethrown. Note that only the state field
+ * is rolled back; any other side effects performed by transition actions or transition listeners are not undone.
  */
 @Slf4j
 public abstract class DefaultTransitionManager<T extends StatefulEntity> implements TransitionManager<T> {
@@ -31,12 +31,12 @@ public abstract class DefaultTransitionManager<T extends StatefulEntity> impleme
             Transition<T> transition = transitionOptional.get();
             State previousState = actionContext.getEntity().getState();
             log.trace("Executing transition from {} to {}", transition.getFromState(), transition.getToState(actionContext));
-            transition.perform(actionContext);
             try {
+                transition.perform(actionContext);
                 persistEntity(actionContext);
             } catch (RuntimeException e) {
-                log.error("Failed to persist entity after transition from {} to {}; rolling back in-memory state to {}",
-                    previousState, actionContext.getEntity().getState(), previousState, e);
+                log.error("Transition from {} to {} failed; rolling back in-memory state to {}",
+                    previousState, transition.getToState(actionContext), previousState, e);
                 actionContext.getEntity().setState(previousState);
                 throw e;
             }

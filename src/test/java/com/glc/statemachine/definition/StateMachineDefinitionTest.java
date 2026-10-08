@@ -7,12 +7,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.glc.statemachine.ActionContext;
 import com.glc.statemachine.StateMachineEvent;
+import com.glc.statemachine.StateMachineEventFromAndTo;
 import com.glc.statemachine.State;
 import com.glc.statemachine.definition.testcase.TestCase;
 import com.glc.statemachine.definition.testcase.TestStateMachineEvent;
 import com.glc.statemachine.definition.testcase.TestState;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -86,6 +88,20 @@ public class StateMachineDefinitionTest {
 
         // When / then
         assertIterableEquals(expectedList, stateMachineDefinition.getStates().stream().sorted(sorter).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void shouldBuildStateWithMultipleDifferentEvents() {
+        // Given
+        StateMachineDefinition<TestCase> definition = new StateMachineDefinition<>(Arrays.asList(
+            new StateMachineEventFromAndTo<>(TestStateMachineEvent.BEGIN, TestState.START, TestState.MIDDLE),
+            new StateMachineEventFromAndTo<>(TestStateMachineEvent.STOP, TestState.START, TestState.END)
+        ));
+
+        // When / then
+        assertEquals(new HashSet<>(Arrays.asList(TestStateMachineEvent.BEGIN, TestStateMachineEvent.STOP)), definition.getEventsForState(TestState.START));
+        assertEquals(TestState.MIDDLE, definition.getTransition(new ActionContext<>(TestStateMachineEvent.BEGIN, new TestCase(), definition)).get().getToState(null));
+        assertEquals(TestState.END, definition.getTransition(new ActionContext<>(TestStateMachineEvent.STOP, new TestCase(), definition)).get().getToState(null));
     }
 
     @Test

@@ -36,13 +36,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Utility class that will load in a state machine manifest that defines a statemachine matrix, evaluators and action classes and generate
@@ -52,6 +53,9 @@ import org.apache.commons.lang3.StringUtils;
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class StateMachineLoader {
+    private static final Pattern MULTIPLE_TRANSITIONS = Pattern.compile("(\\[[^\\[\\]]+])+");
+    private static final Pattern BRACKETED_TRANSITION = Pattern.compile("\\[([^\\[\\]]+)]");
+
     InputStream manifestFile;
     Object evaluatorInstantiationParam;
 
@@ -321,41 +325,32 @@ public class StateMachineLoader {
      * 2. Double - Evaluator / Next State or Next State / Action e.g "COMPLETE/TA1"
      * 3. Triple - Evaluator / Next State / Action e..g "TE1/COMPLEX/TA1"
      * <p>
-     * Multple transitions could be defined like this:
+     * Multiple transitions are each wrapped in brackets, and are evaluated in order:
      * <p>
      * "[COMPLETED/TA1][TE1/REFER/TA1]"
+     * <p>
+     * A cell containing brackets must consist only of bracketed transitions, otherwise it is rejected.
      *
      * @param transitionConfig
      * @param manifest
      * @return
      */
     private List<TransitionContainer> extractTransitionContainer(String transitionConfig, StateMachineManifest manifest) {
-        // Single Transition
-        if (!isEmpty(transitionConfig) && !transitionConfig.contains("/") && !transitionConfig.contains("[")) {
-            return Collections.singletonList(new TransitionContainer(new DefaultState(transitionConfig)));
+        if (isEmpty(transitionConfig)) {
+            return emptyList();
         }
-        // Single transition with combination of evaluators and / or actions
-        else if (!isEmpty(transitionConfig) && transitionConfig.contains("/") && !transitionConfig.contains("[")) {
-            List<String> tokens = Arrays.asList(transitionConfig.split("/"));
-            return Collections.singletonList(extractTransitionContainerFromTokens(tokens, manifest));
+        if (!transitionConfig.contains("[") && !transitionConfig.contains("]")) {
+            return Collections.singletonList(extractTransitionContainerFromTokens(Arrays.asList(transitionConfig.split("/", -1)), manifest));
         }
-        // Multiple transitions
-        else if (!isEmpty(transitionConfig) && transitionConfig.contains("/") && transitionConfig.contains("[")) {
-            if (StringUtils.countMatches(transitionConfig, "[") != StringUtils.countMatches(transitionConfig, "]")) {
-                throw new InvalidStateMachineException("Transition '" + transitionConfig + "' appears to be invalid as it is missing an opening brace or closing brace");
-            }
-            transitionConfig = transitionConfig.replaceAll("\\[", "");
-            return Arrays.stream(transitionConfig.split("]")).map(tc -> {
-                try {
-                    return extractTransitionContainerFromTokens(Arrays.asList(tc.split("/")), manifest);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }).collect(Collectors.toList());
-        } else if (!isEmpty(transitionConfig) && transitionConfig.contains("/") && transitionConfig.contains("]")) {
-            throw new InvalidStateMachineException("Transition '" + transitionConfig + "' appears to be invalid as it is missing an opening brace");
+        if (!MULTIPLE_TRANSITIONS.matcher(transitionConfig).matches()) {
+            throw new InvalidStateMachineException("Transition '" + transitionConfig + "' appears to be invalid as it is missing an opening brace or closing brace");
         }
-        return emptyList();
+        List<TransitionContainer> transitions = new ArrayList<>();
+        Matcher bracketedTransition = BRACKETED_TRANSITION.matcher(transitionConfig);
+        while (bracketedTransition.find()) {
+            transitions.add(extractTransitionContainerFromTokens(Arrays.asList(bracketedTransition.group(1).split("/", -1)), manifest));
+        }
+        return transitions;
     }
 
     /**
@@ -370,6 +365,9 @@ public class StateMachineLoader {
      * @return
      */
     private TransitionContainer extractTransitionContainerFromTokens(List<String> tokens, StateMachineManifest<? extends StatefulEntity> manifest) {
+        if (tokens.size() == 1) {
+            return new TransitionContainer(new DefaultState(tokens.get(0)));
+        }
         if (tokens.size() == 2) {
             Class<? extends TransitionEvaluator<? extends StatefulEntity>> evaluatorClass = manifest.getTransitionEvaluators().get(tokens.get(0));
             Class<? extends TransitionAction<? extends StatefulEntity>> actionClass = manifest.getTransitionActions() != null ? manifest.getTransitionActions().get(tokens.get(1)) : null;
